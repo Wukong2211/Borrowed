@@ -2,21 +2,31 @@
 // Payments and purchases are arranged directly by students; Borrowed does not process them.
 (() => {
   const originalRender = window.renderCampusCommunity;
-  const typeLabels = { item_sale: 'For sale', item_exchange: 'Exchange', giveaway: 'Free', deal: 'Campus deal', opportunity: 'Opportunity' };
+  const typeLabels = { item_sale: 'For sale', item_exchange: 'Exchange', giveaway: 'Free', deal: 'Campus deal', opportunity: 'Opportunity', missing_id: 'Missing ID card', found_id: 'Found ID card' };
   const boardTypes = {
     market: ['item_sale', 'item_exchange', 'giveaway'],
-    opportunities: ['deal', 'opportunity']
+    opportunities: ['deal', 'opportunity'],
+    'id-cards': ['missing_id', 'found_id']
   };
   let boardLoaded = false;
   let boardLoadPromise = null;
-  const activeBoardTab = () => ['market', 'opportunities'].includes(communityTab);
+  const activeBoardTab = () => ['market', 'opportunities', 'id-cards'].includes(communityTab);
   const own = post => cloudMode && post.owner_id === cloud?.uid;
 
   function installTabs() {
     const tabs = document.querySelector('.community-tabs');
-    if (!tabs || tabs.dataset.boardInstalled) return;
+    if (!tabs) return;
     tabs.dataset.boardInstalled = 'true';
-    tabs.insertAdjacentHTML('beforeend', '<button class="tab" data-community-tab="market">Student marketplace</button><button class="tab" data-community-tab="opportunities">Deals & opportunities</button>');
+    const additions = [
+      ['market', 'Student marketplace'],
+      ['opportunities', 'Deals & opportunities'],
+      ['id-cards', 'Lost & found IDs']
+    ];
+    additions.forEach(([tab, label]) => {
+      if (!tabs.querySelector(`[data-community-tab="${tab}"]`)) {
+        tabs.insertAdjacentHTML('beforeend', `<button class="tab" data-community-tab="${tab}">${label}</button>`);
+      }
+    });
     syncBoardTabs();
   }
 
@@ -34,7 +44,8 @@
         skills: ['Short peer-learning sessions. Earn credits when both students confirm completion.', '＋ Offer a skill'],
         teams: ['Find collaborators for hackathons, competitions, and student projects.', '＋ Find teammates'],
         market: ['Buy, exchange, or give away useful things with verified SRM students. Coordinate and pay directly.', '＋ Create a listing'],
-        opportunities: ['Find campus discounts, workshops, gigs, hackathons, and other student opportunities.', '＋ Post an opportunity']
+        opportunities: ['Find campus discounts, workshops, gigs, hackathons, and other student opportunities.', '＋ Post an opportunity'],
+        'id-cards': ['Help return missing campus ID cards. Never post a card number, photo, QR code, or private details.', '＋ Post an ID card notice']
       }[communityTab];
       if (copy) { toolbar.textContent = copy[0]; create.textContent = copy[1]; }
     }
@@ -55,10 +66,15 @@
       const date = post.expires_at ? ` · Closes ${new Date(`${post.expires_at}T12:00:00`).toLocaleDateString()}` : '';
       const price = post.post_type === 'item_sale' && post.price_rupees ? `<strong>₹${Number(post.price_rupees).toLocaleString('en-IN')}</strong>` : post.post_type === 'item_sale' ? '<span>Price by arrangement</span>' : '';
       const responseControls = others.map(i => `<div class="board-interest"><span>${esc(communityName(i.user_id))}: ${esc(i.introduction)}</span><span class="status-pill ${i.status === 'accepted' ? 'done' : ''}">${esc(i.status)}</span>${i.status === 'pending' ? `<button class="outline-button" data-board-answer="decline:${i.id}">Decline</button><button class="primary-button community-action" data-board-answer="accept:${i.id}">Accept</button>` : ''}${i.status === 'accepted' ? `<button class="outline-button" data-board-chat="${post.id}" data-board-with="${i.user_id}">Message</button>` : ''}</div>`).join('');
-      return `<article class="community-card board-card"><div class="community-card-top"><span class="community-tag">${esc(typeLabels[post.post_type] || 'Campus post')}</span><span class="community-format">${esc(post.category || 'Other')}${esc(date)}</span></div><h3>${esc(post.title)}</h3><p>${esc(post.description)}</p><div class="community-meta"><span>Posted by ${esc(communityName(post.owner_id))}</span>${price}</div>${responseControls ? `<div class="board-interests"><b>Responses</b>${responseControls}</div>` : ''}<div class="community-card-bottom">${own(post) ? `<span class="status-pill ${post.status === 'open' ? 'done' : ''}">${post.status === 'open' ? 'Live' : 'Closed'}</span><button class="outline-button" data-board-status="${post.id}">${post.status === 'open' ? 'Close post' : 'Reopen post'}</button><button class="outline-button" data-board-delete="${post.id}">Delete</button>` : interest ? `<span class="status-pill ${interest.status === 'accepted' ? 'done' : ''}">${interest.status === 'accepted' ? 'Accepted' : interest.status === 'declined' ? 'Declined' : 'Interest sent'}</span>${interest.status === 'accepted' ? `<button class="primary-button community-action" data-board-chat="${post.id}" data-board-with="${post.owner_id}">Message poster</button>` : ''}` : `<button class="primary-button community-action" data-board-interest="${post.id}">${communityTab === 'market' ? 'Contact student' : 'I’m interested'}</button>`}</div></article>`;
+      const interestAction = communityTab === 'market' ? 'Contact student' : communityTab === 'id-cards' ? (post.post_type === 'missing_id' ? 'I found this card' : 'This is my card') : 'I’m interested';
+      return `<article class="community-card board-card"><div class="community-card-top"><span class="community-tag">${esc(typeLabels[post.post_type] || 'Campus post')}</span><span class="community-format">${esc(post.category || 'Other')}${esc(date)}</span></div><h3>${esc(post.title)}</h3><p>${esc(post.description)}</p><div class="community-meta"><span>Posted by ${esc(communityName(post.owner_id))}</span>${price}</div>${responseControls ? `<div class="board-interests"><b>Responses</b>${responseControls}</div>` : ''}<div class="community-card-bottom">${own(post) ? `<span class="status-pill ${post.status === 'open' ? 'done' : ''}">${post.status === 'open' ? 'Live' : 'Closed'}</span><button class="outline-button" data-board-status="${post.id}">${post.status === 'open' ? 'Close post' : 'Reopen post'}</button><button class="outline-button" data-board-delete="${post.id}">Delete</button>` : interest ? `<span class="status-pill ${interest.status === 'accepted' ? 'done' : ''}">${interest.status === 'accepted' ? 'Accepted' : interest.status === 'declined' ? 'Declined' : 'Interest sent'}</span>${interest.status === 'accepted' ? `<button class="primary-button community-action" data-board-chat="${post.id}" data-board-with="${post.owner_id}">Message poster</button>` : ''}` : `<button class="primary-button community-action" data-board-interest="${post.id}">${interestAction}</button>`}</div></article>`;
     }).join('');
-    const createCopy = communityTab === 'market' ? 'Share something useful' : 'Share a useful opportunity';
-    content.innerHTML = `<div class="community-grid">${cards || `<div class="empty-state"><b>${communityTab === 'market' ? 'No marketplace posts yet' : 'No deals or opportunities yet'}</b><p>${communityTab === 'market' ? 'Post a useful item for sale, exchange, or giveaway.' : 'Share a real campus deal, workshop, gig, or event.'}</p><button class="outline-button" data-board-open-create>${createCopy}</button></div>`}</div><section class="help-card"><span class="eyebrow">CAMPUS COMMUNITY</span><h3>Keep it clear and safe</h3><p>Posts are student-submitted and not verified or endorsed by SRM or Borrowed. Meet in public campus areas. Any cash exchange is arranged directly between students; Borrowed does not process or protect payments. Never post private contact or room details.</p></section>`;
+    const emptyCopy = communityTab === 'market'
+      ? ['No marketplace posts yet', 'Post a useful item for sale, exchange, or giveaway.', 'Share something useful']
+      : communityTab === 'id-cards'
+        ? ['No ID card notices yet', 'Post a brief notice if you lost or found a campus ID card.', 'Post an ID card notice']
+        : ['No deals or opportunities yet', 'Share a real campus deal, workshop, gig, or event.', 'Share a useful opportunity'];
+    content.innerHTML = `<div class="community-grid">${cards || `<div class="empty-state"><b>${emptyCopy[0]}</b><p>${emptyCopy[1]}</p><button class="outline-button" data-board-open-create>${emptyCopy[2]}</button></div>`}</div><section class="help-card"><span class="eyebrow">CAMPUS COMMUNITY</span><h3>${communityTab === 'id-cards' ? 'Protect your identity' : 'Keep it clear and safe'}</h3><p>${communityTab === 'id-cards' ? 'Never post an ID number, card photo, QR/barcode, address, phone number, or other identifying details. Use a broad public campus location only; arrange return by private message and meet at campus security.' : 'Posts are student-submitted and not verified or endorsed by SRM or Borrowed. Meet in public campus areas. Any cash exchange is arranged directly between students; Borrowed does not process or protect payments. Never post private contact or room details.'}</p></section>`;
   }
 
   async function fetchBoard() {
@@ -103,18 +119,30 @@
   function openPostDialog() {
     if (!cloudMode || !cloudUser) { communityOpenAuth(); return; }
     const type = document.querySelector('#campus-post-type');
-    type.value = communityTab === 'market' ? 'item_sale' : 'opportunity';
-    document.querySelector('#campus-post-heading').textContent = communityTab === 'market' ? 'Create a marketplace post' : 'Post a deal or opportunity';
+    type.value = communityTab === 'market' ? 'item_sale' : communityTab === 'id-cards' ? 'missing_id' : 'opportunity';
+    document.querySelector('#campus-post-heading').textContent = communityTab === 'market' ? 'Create a marketplace post' : communityTab === 'id-cards' ? 'Post a lost or found ID card notice' : 'Post a deal or opportunity';
     document.querySelector('#campus-price-wrap').hidden = type.value !== 'item_sale';
+    document.querySelector('#campus-id-card-safety').hidden = !['missing_id', 'found_id'].includes(type.value);
+    document.querySelector('#campus-post-title').placeholder = communityTab === 'id-cards' ? 'e.g. Lost campus ID near the library' : 'e.g. Engineering mathematics textbook';
+    document.querySelector('#campus-post-description').placeholder = communityTab === 'id-cards' ? 'Share only a broad location and when it was lost or found. Do not include an ID number or identifying details.' : 'Condition, exchange preference, deal terms, or opportunity details';
     document.querySelector('#campus-post-dialog').showModal();
   }
   document.querySelector('#campus-post-type').addEventListener('change', e => {
     document.querySelector('#campus-price-wrap').hidden = e.target.value !== 'item_sale';
+    document.querySelector('#campus-id-card-safety').hidden = !['missing_id', 'found_id'].includes(e.target.value);
+    document.querySelector('#campus-post-heading').textContent = ['missing_id', 'found_id'].includes(e.target.value) ? 'Post a lost or found ID card notice' : e.target.value === 'item_sale' ? 'Create a marketplace post' : 'Post a deal or opportunity';
   });
+  document.querySelector('#campus-post-type').insertAdjacentHTML('beforeend', '<option value="missing_id">Report a missing ID card</option><option value="found_id">Report a found ID card</option>');
+  const idCardSafety = document.createElement('p');
+  idCardSafety.id = 'campus-id-card-safety';
+  idCardSafety.className = 'campus-post-disclosure';
+  idCardSafety.hidden = true;
+  idCardSafety.textContent = 'Protect your identity: never post an ID number, card photo, QR/barcode, address, phone number, or other identifying details. Share only a broad public campus location. Arrange return by private message and meet at campus security.';
+  document.querySelector('#campus-post-description').insertAdjacentElement('afterend', idCardSafety);
 
   document.addEventListener('click', async event => {
     const campusTab = event.target.closest('[data-community-tab]');
-    if (campusTab && ['skills', 'teams', 'market', 'opportunities'].includes(campusTab.dataset.communityTab)) {
+    if (campusTab && ['skills', 'teams', 'market', 'opportunities', 'id-cards'].includes(campusTab.dataset.communityTab)) {
       event.preventDefault(); event.stopImmediatePropagation();
       communityTab = campusTab.dataset.communityTab;
       syncBoardTabs();

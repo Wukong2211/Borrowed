@@ -4,7 +4,7 @@
 create table if not exists public.campus_board_posts (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
-  post_type text not null check(post_type in ('item_sale','item_exchange','giveaway','deal','opportunity')),
+  post_type text not null check(post_type in ('item_sale','item_exchange','giveaway','deal','opportunity','missing_id','found_id')),
   title text not null check(char_length(title) between 3 and 100),
   description text not null check(char_length(description) between 5 and 1200),
   category text not null default 'Other' check(char_length(category)<=50),
@@ -13,6 +13,9 @@ create table if not exists public.campus_board_posts (
   status text not null default 'open' check(status in ('open','closed')),
   created_at timestamptz not null default now()
 );
+alter table public.campus_board_posts drop constraint if exists campus_board_posts_post_type_check;
+alter table public.campus_board_posts add constraint campus_board_posts_post_type_check
+  check(post_type in ('item_sale','item_exchange','giveaway','deal','opportunity','missing_id','found_id'));
 create index if not exists campus_board_posts_open_idx on public.campus_board_posts(status,created_at desc);
 
 create table if not exists public.campus_board_interests (

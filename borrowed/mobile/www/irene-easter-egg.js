@@ -1,5 +1,6 @@
 (() => {
   const screen = document.querySelector('#screen-content');
+  const photoUrl = new URL('./assets/irene-photo.jpg', document.currentScript.src).href;
   let matchingQuery = false;
 
   function showLoveAnimation() {
@@ -13,7 +14,7 @@
 
     const photo = document.createElement('img');
     photo.className = 'irene-love-photo';
-    photo.src = 'assets/irene-photo.jpg';
+    photo.src = photoUrl;
     photo.alt = 'Irene';
 
     const heart = document.createElement('span');
@@ -35,7 +36,13 @@
         screen.dataset.friendsScene !== 'explore') return;
 
     const matches = event.target.value.trim().toLowerCase() === 'irene';
-    if (matches && !matchingQuery) showLoveAnimation();
+    if (matches && !matchingQuery) {
+      requestAnimationFrame(() => {
+        const search = screen.querySelector('#search');
+        if (screen.dataset.friendsScene === 'explore' &&
+            search?.value.trim().toLowerCase() === 'irene') showLoveAnimation();
+      });
+    }
     if (!matches) screen.querySelector('.irene-love-animation')?.remove();
     matchingQuery = matches;
   }, true);

@@ -171,8 +171,11 @@ body[data-theme="stitch-ohana"] .world-panel{border-color:#4d8ac2;background:lin
   body[data-theme] .page .listing-grid::-webkit-scrollbar{display:none}
   body[data-theme] .page .item-card{min-width:0;scroll-snap-align:start}
 }
-@keyframes borrow-ticker-scroll{to{transform:translateX(-50%)}}
+@keyframes borrow-ticker-scroll{0%{transform:translate3d(0,0,0)}12.5%{transform:translate3d(-6.25%,-2px,0)}25%{transform:translate3d(-12.5%,-3px,0)}37.5%{transform:translate3d(-18.75%,-2px,0)}50%{transform:translate3d(-25%,0,0)}62.5%{transform:translate3d(-31.25%,2px,0)}75%{transform:translate3d(-37.5%,3px,0)}87.5%{transform:translate3d(-43.75%,2px,0)}100%{transform:translate3d(-50%,0,0)}}
 @media(prefers-reduced-motion:reduce){.borrow-ticker-track{animation:none}}
+.app-shell>.borrow-ticker{position:sticky;top:76px;z-index:4;width:100%;margin:0;padding:12px 0;clip-path:none}
+.page>.borrow-ticker{display:none!important}
+@media(max-width:760px){.app-shell>.borrow-ticker{top:62px}}
 body,body *{user-select:none;-webkit-user-select:none}
 input,textarea,[contenteditable="true"]{user-select:text;-webkit-user-select:text}
 ::selection{background:transparent;color:inherit}
